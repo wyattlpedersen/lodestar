@@ -34,3 +34,16 @@ export async function GET(
     derived: computeDerivedFinancials(orgFilings),
   });
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ ein: string }> }
+) {
+  const { ein } = await params;
+  const body = await req.json().catch(() => null);
+  if (typeof body?.verified !== "boolean") {
+    return NextResponse.json({ error: "Body must include boolean `verified`." }, { status: 400 });
+  }
+  await db.update(organizations).set({ verified: body.verified }).where(eq(organizations.ein, ein));
+  return NextResponse.json({ ein, verified: body.verified });
+}

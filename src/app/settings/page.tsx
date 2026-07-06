@@ -1,6 +1,5 @@
 import { PageHeader } from "@/components/page-header";
-import { EmptyState } from "@/components/empty-state";
-import { Settings as SettingsIcon } from "lucide-react";
+import { SettingsWeights } from "./settings-weights";
 
 export default function SettingsPage() {
   return (
@@ -9,11 +8,13 @@ export default function SettingsPage() {
         title="Settings"
         description="Weight presets, data refresh, import/export, and Demo Mode."
       />
-      <EmptyState
-        icon={SettingsIcon}
-        title="Settings arrive with the scoring engine"
-        description="Weight sliders, presets, and data management tools will appear here once the scoring engine is built."
-      />
+      <div className="flex-1 overflow-y-auto">
+        <SettingsWeights />
+        <div className="border-t border-border px-6 py-4 text-xs text-muted-foreground">
+          Data management (refresh all, export/import, Demo Mode) arrives with
+          Phase 5 — Polish & demo hardening.
+        </div>
+      </div>
     </div>
   );
 }
