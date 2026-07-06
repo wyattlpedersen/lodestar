@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { manualFacts } from "@/lib/db/schema";
 import { and, eq } from "drizzle-orm";
+import { syncAutoSignals } from "@/lib/signals/sync";
 
 const ALLOWED_KEYS = new Set([
   "mgmt_fees_usd",
+  "mgmt_fees_usd_prior",
   "has_paid_cio",
   "pct_cash_public",
   "single_manager",
@@ -40,6 +42,8 @@ export async function PUT(
   } else {
     await db.insert(manualFacts).values({ ein, key, value: String(value), note });
   }
+
+  await syncAutoSignals(ein);
 
   return NextResponse.json({ ein, key, value: String(value) });
 }

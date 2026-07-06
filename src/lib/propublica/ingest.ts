@@ -4,6 +4,7 @@ import { organizations, filings } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { getOrganizationDetail } from "./client";
 import { mapOrganization, mapFilings } from "./mapper";
+import { syncAutoSignals } from "@/lib/signals/sync";
 
 /**
  * Fetches (cache-first, unless `force`) and persists one org's detail + filings.
@@ -68,5 +69,7 @@ export async function hydrateOrganization(ein: string, opts: { force?: boolean }
     );
   }
 
-  return { organization: mappedOrg, filings: mappedFilings };
+  const autoSignals = await syncAutoSignals(mappedOrg.ein);
+
+  return { organization: mappedOrg, filings: mappedFilings, autoSignals };
 }

@@ -88,6 +88,7 @@ export const affiliations = sqliteTable("affiliations", {
   role: text("role"),
   isCurrent: integer("is_current", { mode: "boolean" }).notNull().default(true),
   sourceUrl: text("source_url"),
+  isVerbalNote: integer("is_verbal_note", { mode: "boolean" }).notNull().default(false),
   tag: text("tag"),
   createdAt: text("created_at").notNull().default(nowIso()),
 });

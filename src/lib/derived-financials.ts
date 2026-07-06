@@ -12,9 +12,18 @@ export interface DerivedFinancials {
   yoyRevenueDelta: number | null;
   yoyExpensesDelta: number | null;
   yoyContributionsDelta: number | null;
+  cagr2yr: number | null;
   cagr3yr: number | null;
   cagr5yr: number | null;
   payoutRatioProxy: number | null;
+}
+
+export function filingAtYearsAgo(
+  filings: FilingLike[],
+  latestYear: number,
+  yearsAgo: number
+): FilingLike | null {
+  return filings.find((f) => f.taxYear === latestYear - yearsAgo) ?? null;
 }
 
 function pctDelta(current: number | null, previous: number | null): number | null {
@@ -48,6 +57,7 @@ export function computeDerivedFinancials(
       yoyRevenueDelta: null,
       yoyExpensesDelta: null,
       yoyContributionsDelta: null,
+      cagr2yr: null,
       cagr3yr: null,
       cagr5yr: null,
       payoutRatioProxy: null,
@@ -74,6 +84,7 @@ export function computeDerivedFinancials(
       latest.contributions,
       prior?.contributions ?? null
     ),
+    cagr2yr: cagr(filings, latest, 2),
     cagr3yr: cagr(filings, latest, 3),
     cagr5yr: cagr(filings, latest, 5),
     payoutRatioProxy,

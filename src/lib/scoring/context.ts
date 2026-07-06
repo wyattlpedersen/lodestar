@@ -1,14 +1,26 @@
 import "server-only";
 import { db } from "@/lib/db";
 import {
+  affiliations as affiliationsTable,
   filings as filingsTable,
   manualFacts as manualFactsTable,
   organizations,
+  people as peopleTable,
+  pipeline as pipelineTable,
   signals as signalsTable,
 } from "@/lib/db/schema";
 import { computeDerivedFinancials, type FilingLike } from "@/lib/derived-financials";
 import { cagrPercentileWithinCohort, type CohortMember } from "./cohort";
 import type { ScoringInput } from "./types";
+import {
+  buildTrusteeGraph,
+  hasJpmAlumOnBoard,
+  hasSecondDegreePath,
+  hasSuperConnectorOnBoard,
+  hasWarmPath,
+  principalUhnwTrusteeCount,
+  RELATIONSHIP_PIPELINE_STAGES,
+} from "@/lib/graph/trustee-graph";
 
 function monthsBetween(taxYear: number, fyeMonth: number | null, today: Date): number {
   const fyeEnd = new Date(Date.UTC(taxYear, (fyeMonth ?? 12) - 1, 28));
@@ -36,22 +48,41 @@ function groupBy<T, K extends string | number>(rows: T[], key: (row: T) => K): M
  * single Dossier's Score tab (score one org, but still needs the full cohort for
  * percentile math) run against.
  *
- * People/affiliations-derived factors (warm path, super-connector, wealth
- * trustee counts) default to false/0 until Phase 3 wires the trustee graph in.
+ * Access/Wealth trustee-graph factors are computed from real people/affiliations
+ * data via `src/lib/graph/trustee-graph.ts` — empty until an analyst enters any.
  */
 export async function buildScoringInputsForUniverse(
   today: Date = new Date()
 ): Promise<ScoringInput[]> {
-  const [orgs, allFilings, allSignals, allFacts] = await Promise.all([
-    db.select().from(organizations),
-    db.select().from(filingsTable),
-    db.select().from(signalsTable),
-    db.select().from(manualFactsTable),
-  ]);
+  const [orgs, allFilings, allSignals, allFacts, allAffiliations, allPeople, allPipeline] =
+    await Promise.all([
+      db.select().from(organizations),
+      db.select().from(filingsTable),
+      db.select().from(signalsTable),
+      db.select().from(manualFactsTable),
+      db.select().from(affiliationsTable),
+      db.select().from(peopleTable),
+      db.select().from(pipelineTable),
+    ]);
 
   const filingsByEin = groupBy(allFilings, (f) => f.ein);
   const signalsByEin = groupBy(allSignals, (s) => s.ein);
   const factsByEin = groupBy(allFacts, (f) => f.ein);
+  const affiliationsByEin = groupBy(allAffiliations, (a) => a.ein);
+
+  const graph = buildTrusteeGraph(
+    allAffiliations.map((a) => ({ personId: a.personId, ein: a.ein, isCurrent: a.isCurrent })),
+    allPeople.map((p) => ({
+      id: p.id,
+      fullName: p.fullName,
+      isKnownContact: p.isKnownContact,
+      isJpmAlum: p.isJpmAlum,
+      isPrincipalUhnw: p.isPrincipalUhnw,
+    }))
+  );
+  const relationshipEins = new Set(
+    allPipeline.filter((p) => RELATIONSHIP_PIPELINE_STAGES.has(p.stage)).map((p) => p.ein)
+  );
 
   const derivedByEin = new Map<string, ReturnType<typeof computeDerivedFinancials>>();
   for (const org of orgs) {
@@ -115,10 +146,10 @@ export async function buildScoringInputsForUniverse(
         tag: s.tag,
       })),
       access: {
-        hasWarmPath: false,
-        hasSecondDegreePath: false,
-        jpmAlumOnBoard: false,
-        superConnectorOnBoard: false,
+        hasWarmPath: hasWarmPath(graph, org.ein),
+        hasSecondDegreePath: hasSecondDegreePath(graph, org.ein, relationshipEins),
+        jpmAlumOnBoard: hasJpmAlumOnBoard(graph, org.ein),
+        superConnectorOnBoard: hasSuperConnectorOnBoard(graph, org.ein),
         hqInCoverageMetro: org.county != null,
       },
       wealth: {
@@ -126,9 +157,11 @@ export async function buildScoringInputsForUniverse(
         founderLiquiditySignalActive: orgSignals.some(
           (s) => s.type === "FOUNDER_LIQUIDITY" && s.active
         ),
-        familyMembersOnBoardCount: 0,
-        corporateFoundationWithCSuite: false,
-        principalUhnwTrusteeCount: 0,
+        familyMembersOnBoardCount: (affiliationsByEin.get(org.ein) ?? []).filter(
+          (a) => a.isCurrent && a.role?.toLowerCase().includes("family")
+        ).length,
+        corporateFoundationWithCSuite: false, // no corporate-foundation org_type in schema — see ASSUMPTIONS.md
+        principalUhnwTrusteeCount: principalUhnwTrusteeCount(graph, org.ein),
       },
       need: {
         feeRatio,

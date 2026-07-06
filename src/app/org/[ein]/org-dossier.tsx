@@ -3,11 +3,13 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OverviewTab } from "./overview-tab";
 import { ScoreTab } from "@/components/scoring/score-tab";
+import { SignalsTab } from "./signals-tab";
+import { PeopleTab } from "./people-tab";
 import type { organizations, filings as filingsTable, manualFacts as manualFactsTable } from "@/lib/db/schema";
 import type { DerivedFinancials } from "@/lib/derived-financials";
 import type { ScoringInput, WeightProfile } from "@/lib/scoring/types";
 import { EmptyState } from "@/components/empty-state";
-import { Radar, Users, Building2, FileText, Activity as ActivityIcon, type LucideIcon } from "lucide-react";
+import { Building2, FileText, Activity as ActivityIcon, type LucideIcon } from "lucide-react";
 
 type Org = typeof organizations.$inferSelect;
 type Filing = typeof filingsTable.$inferSelect;
@@ -65,10 +67,10 @@ export function OrgDossier({
           />
         </TabsContent>
         <TabsContent value="signals" className="mt-0">
-          <ComingSoon icon={Radar} title="Signal timeline" phase="Phase 3 — Intelligence" />
+          <SignalsTab ein={org.ein} />
         </TabsContent>
         <TabsContent value="people" className="mt-0">
-          <ComingSoon icon={Users} title="Board & staff, trustee graph" phase="Phase 3 — Intelligence" />
+          <PeopleTab ein={org.ein} />
         </TabsContent>
         <TabsContent value="peers" className="mt-0">
           <ComingSoon icon={Building2} title="Peer benchmarking" phase="Phase 4 — Banker workflow" />

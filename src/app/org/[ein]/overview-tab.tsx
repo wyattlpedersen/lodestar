@@ -55,6 +55,7 @@ export function OverviewTab({
   );
 
   const [mgmtFees, setMgmtFees] = React.useState(factMap.mgmt_fees_usd ?? "");
+  const [mgmtFeesPrior, setMgmtFeesPrior] = React.useState(factMap.mgmt_fees_usd_prior ?? "");
   const [hasCio, setHasCio] = React.useState(factMap.has_paid_cio ?? "");
   const [pctCash, setPctCash] = React.useState(factMap.pct_cash_public ?? "");
   const [singleManager, setSingleManager] = React.useState(factMap.single_manager === "true");
@@ -87,6 +88,7 @@ export function OverviewTab({
     try {
       await Promise.all([
         mgmtFees && saveFact("mgmt_fees_usd", mgmtFees),
+        mgmtFeesPrior && saveFact("mgmt_fees_usd_prior", mgmtFeesPrior),
         hasCio && saveFact("has_paid_cio", hasCio),
         pctCash && saveFact("pct_cash_public", String(Number(pctCash) / 100)),
         saveFact("single_manager", String(singleManager)),
@@ -204,6 +206,16 @@ export function OverviewTab({
               value={mgmtFees}
               onChange={(e) => setMgmtFees(e.target.value)}
               placeholder="e.g. 850000"
+              className="h-8 text-xs"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Prior-year fees, $ (optional — powers the FEE_SPIKE signal)</Label>
+            <Input
+              type="number"
+              value={mgmtFeesPrior}
+              onChange={(e) => setMgmtFeesPrior(e.target.value)}
+              placeholder="e.g. 550000"
               className="h-8 text-xs"
             />
           </div>
