@@ -82,7 +82,7 @@ Verified directly against `https://projects.propublica.org/nonprofits/api/v2/` b
 ## Seed Resolution Log
 
 <!-- SEED_LOG_START -->
-### Seed resolution log (`npm run seed`, last run 2026-07-06T18:05:16.984Z)
+### Seed resolution log (`npm run seed`, last run 2026-07-06T23:12:24.883Z)
 
 | Seed name | Resolved EIN | Matched name | Status |
 |---|---|---|---|
