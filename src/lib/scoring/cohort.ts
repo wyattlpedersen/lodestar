@@ -19,6 +19,22 @@ export interface CohortMember {
   cagr5yr: number | null;
 }
 
+/** Generic percentile-within-cohort: what % of `values` does `value` beat-or-tie? Requires >=2 comparison points. */
+export function percentileOf(value: number, values: number[]): number | null {
+  if (values.length < 2) return null;
+  const betterOrEqual = values.filter((v) => v <= value).length;
+  return (betterOrEqual / values.length) * 100;
+}
+
+export function sameCohort(
+  ein: string,
+  nteeMajor: number | null,
+  bandLabel: string,
+  m: { ein: string; nteeMajor: number | null; latestAssets: number | null }
+): boolean {
+  return m.ein !== ein && m.nteeMajor === nteeMajor && assetBandFor(m.latestAssets)?.label === bandLabel;
+}
+
 /**
  * Percentile of `orgCagr` within its cohort's CAGR distribution (0-100, higher is
  * better). Requires at least 2 other cohort members with a CAGR value — otherwise

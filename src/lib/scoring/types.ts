@@ -83,7 +83,7 @@ export interface ScoringInput {
   need: NeedVulnerabilityFacts;
   growth: GrowthFactors;
   confidence: ConfidenceInputs;
-  derived: Pick<DerivedFinancials, "cagr3yr" | "cagr5yr">;
+  derived: Pick<DerivedFinancials, "cagr3yr" | "cagr5yr" | "payoutRatioProxy">;
 }
 
 export interface FactorRow {

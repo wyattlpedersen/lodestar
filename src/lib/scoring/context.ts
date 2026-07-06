@@ -190,7 +190,11 @@ export async function buildScoringInputsForUniverse(
         activeSignalsWithSourceCount,
         analystVerified: org.verified,
       },
-      derived: { cagr3yr: derived.cagr3yr, cagr5yr: derived.cagr5yr },
+      derived: {
+        cagr3yr: derived.cagr3yr,
+        cagr5yr: derived.cagr5yr,
+        payoutRatioProxy: derived.payoutRatioProxy,
+      },
     };
 
     return input;

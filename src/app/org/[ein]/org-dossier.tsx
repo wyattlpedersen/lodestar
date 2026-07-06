@@ -5,25 +5,16 @@ import { OverviewTab } from "./overview-tab";
 import { ScoreTab } from "@/components/scoring/score-tab";
 import { SignalsTab } from "./signals-tab";
 import { PeopleTab } from "./people-tab";
+import { PeersTab } from "./peers-tab";
+import { BriefingTab } from "./briefing-tab";
+import { ActivityTab } from "./activity-tab";
 import type { organizations, filings as filingsTable, manualFacts as manualFactsTable } from "@/lib/db/schema";
 import type { DerivedFinancials } from "@/lib/derived-financials";
 import type { ScoringInput, WeightProfile } from "@/lib/scoring/types";
-import { EmptyState } from "@/components/empty-state";
-import { Building2, FileText, Activity as ActivityIcon, type LucideIcon } from "lucide-react";
 
 type Org = typeof organizations.$inferSelect;
 type Filing = typeof filingsTable.$inferSelect;
 type ManualFact = typeof manualFactsTable.$inferSelect;
-
-function ComingSoon({ icon: Icon, title, phase }: { icon: LucideIcon; title: string; phase: string }) {
-  return (
-    <EmptyState
-      icon={Icon}
-      title={title}
-      description={`Arrives with ${phase}.`}
-    />
-  );
-}
 
 export function OrgDossier({
   org,
@@ -44,7 +35,7 @@ export function OrgDossier({
 }) {
   return (
     <Tabs defaultValue="overview" className="flex h-full flex-col">
-      <TabsList className="mx-6 mt-3 w-fit">
+      <TabsList className="mx-6 mt-3 w-fit no-print">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="score">Score</TabsTrigger>
         <TabsTrigger value="signals">Signals</TabsTrigger>
@@ -54,7 +45,7 @@ export function OrgDossier({
         <TabsTrigger value="activity">Activity</TabsTrigger>
       </TabsList>
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-6 py-4 print:h-auto print:overflow-visible print:px-0 print:py-0">
         <TabsContent value="overview" className="mt-0">
           <OverviewTab org={org} filings={filings} manualFacts={manualFacts} derived={derived} />
         </TabsContent>
@@ -73,13 +64,13 @@ export function OrgDossier({
           <PeopleTab ein={org.ein} />
         </TabsContent>
         <TabsContent value="peers" className="mt-0">
-          <ComingSoon icon={Building2} title="Peer benchmarking" phase="Phase 4 — Banker workflow" />
+          <PeersTab ein={org.ein} />
         </TabsContent>
         <TabsContent value="briefing" className="mt-0">
-          <ComingSoon icon={FileText} title="Briefing book" phase="Phase 4 — Banker workflow" />
+          <BriefingTab ein={org.ein} />
         </TabsContent>
         <TabsContent value="activity" className="mt-0">
-          <ComingSoon icon={ActivityIcon} title="Pipeline history & notes" phase="Phase 4 — Banker workflow" />
+          <ActivityTab ein={org.ein} />
         </TabsContent>
       </div>
     </Tabs>

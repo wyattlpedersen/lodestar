@@ -181,12 +181,29 @@
 }
 
 @media print {
+  @page {
+    size: letter;
+    margin: 0.5in;
+  }
   html,
   body {
     background: #fff !important;
     color: #000 !important;
+    height: auto !important;
+    overflow: visible !important;
   }
   .no-print {
     display: none !important;
+  }
+  main {
+    overflow: visible !important;
+    height: auto !important;
+  }
+  .briefing-page {
+    max-width: none !important;
+    break-inside: avoid;
+  }
+  .break-inside-avoid {
+    break-inside: avoid;
   }
 }

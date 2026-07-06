@@ -44,7 +44,7 @@ function baseInput(overrides: Partial<ScoringInput> = {}): ScoringInput {
       activeSignalsWithSourceCount: 0,
       analystVerified: false,
     },
-    derived: { cagr3yr: null, cagr5yr: null },
+    derived: { cagr3yr: null, cagr5yr: null, payoutRatioProxy: null },
     ...overrides,
   };
 }

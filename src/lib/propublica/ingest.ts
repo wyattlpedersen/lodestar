@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/lib/db";
-import { organizations, filings } from "@/lib/db/schema";
+import { organizations, filings, pipeline } from "@/lib/db/schema";
 import { eq, sql } from "drizzle-orm";
 import { getOrganizationDetail } from "./client";
 import { mapOrganization, mapFilings } from "./mapper";
@@ -68,6 +68,11 @@ export async function hydrateOrganization(ein: string, opts: { force?: boolean }
       }))
     );
   }
+
+  await db
+    .insert(pipeline)
+    .values({ ein: mappedOrg.ein, stage: "identified" })
+    .onConflictDoNothing();
 
   const autoSignals = await syncAutoSignals(mappedOrg.ein);
 

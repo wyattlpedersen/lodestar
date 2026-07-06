@@ -50,13 +50,15 @@ export default async function OrgDossierPage({
     };
 
   return (
-    <div className="flex h-full flex-col">
-      <PageHeader
-        title={org.name}
-        description={`EIN ${org.ein} · ${nteeMajorLabel(org.nteeMajor)} · ${
-          org.city ?? "—"
-        }, ${org.state ?? "—"}${org.county ? ` (${org.county} County)` : ""}`}
-      />
+    <div className="flex h-full flex-col print:h-auto">
+      <div className="no-print">
+        <PageHeader
+          title={org.name}
+          description={`EIN ${org.ein} · ${nteeMajorLabel(org.nteeMajor)} · ${
+            org.city ?? "—"
+          }, ${org.state ?? "—"}${org.county ? ` (${org.county} County)` : ""}`}
+        />
+      </div>
       <OrgDossier
         org={org}
         filings={orgFilings}

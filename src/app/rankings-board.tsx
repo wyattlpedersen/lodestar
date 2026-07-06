@@ -62,17 +62,29 @@ export function RankingsBoard() {
 
   const [tierFilter, setTierFilter] = React.useState<string>("All");
   const [orgTypeFilter, setOrgTypeFilter] = React.useState<string>("All");
+  const [warmPathOnly, setWarmPathOnly] = React.useState(false);
+  const [staleTier1Only, setStaleTier1Only] = React.useState(false);
+  const [pipelineByEin, setPipelineByEin] = React.useState<
+    Record<string, { lastTouchDate: string | null; nextAction: string | null; nextActionDate: string | null }>
+  >({});
 
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
-    fetch("/api/scoring")
-      .then((r) => r.json())
-      .then((data) => {
+    Promise.all([
+      fetch("/api/scoring").then((r) => r.json()),
+      fetch("/api/pipeline").then((r) => r.json()),
+    ])
+      .then(([data, pipelineData]) => {
         setInputs(data.inputs);
         setHistory(data.history ?? {});
         setWeights(data.weightProfile.weights);
         setPresetName(data.weightProfile.name);
+        const byEin: typeof pipelineByEin = {};
+        for (const p of pipelineData.pipeline ?? []) {
+          byEin[p.ein] = { lastTouchDate: p.lastTouchDate, nextAction: p.nextAction, nextActionDate: p.nextActionDate };
+        }
+        setPipelineByEin(byEin);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -124,6 +136,16 @@ export function RankingsBoard() {
     if (orgTypeFilter !== "All") {
       const input = inputs.find((i) => i.ein === r.ein);
       if (input?.orgType !== orgTypeFilter) return false;
+    }
+    if (warmPathOnly) {
+      const input = inputs.find((i) => i.ein === r.ein);
+      if (!input?.access.hasWarmPath) return false;
+    }
+    if (staleTier1Only) {
+      if (r.tier !== "TIER_1") return false;
+      const lastTouch = pipelineByEin[r.ein]?.lastTouchDate;
+      const days = lastTouch ? (today.getTime() - new Date(lastTouch).getTime()) / 86400000 : Infinity;
+      if (days < 14) return false;
     }
     return true;
   });
@@ -183,6 +205,22 @@ export function RankingsBoard() {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          variant={warmPathOnly ? "default" : "outline"}
+          size="sm"
+          onClick={() => setWarmPathOnly((v) => !v)}
+          className={warmPathOnly ? "bg-gold text-gold-foreground hover:bg-gold/90" : ""}
+        >
+          Has warm path
+        </Button>
+        <Button
+          variant={staleTier1Only ? "default" : "outline"}
+          size="sm"
+          onClick={() => setStaleTier1Only((v) => !v)}
+          className={staleTier1Only ? "bg-gold text-gold-foreground hover:bg-gold/90" : ""}
+        >
+          Stale Tier 1 (14d)
+        </Button>
         <span className="text-xs text-muted-foreground">
           {filtered.length} of {results.length}
         </span>
@@ -218,6 +256,8 @@ export function RankingsBoard() {
               <TableHead>Confidence</TableHead>
               <TableHead className="text-right">Assets</TableHead>
               <TableHead>Top signal</TableHead>
+              <TableHead>Last touch</TableHead>
+              <TableHead>Next action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -284,6 +324,14 @@ export function RankingsBoard() {
                   </TableCell>
                   <TableCell className="max-w-48 truncate text-xs text-muted-foreground">
                     {topSignal ? topSignal.label : "—"}
+                  </TableCell>
+                  <TableCell className="font-mono text-[11px] text-muted-foreground">
+                    {pipelineByEin[r.ein]?.lastTouchDate ?? "—"}
+                  </TableCell>
+                  <TableCell className="max-w-40 truncate text-[11px] text-muted-foreground">
+                    {pipelineByEin[r.ein]?.nextActionDate
+                      ? `${pipelineByEin[r.ein]?.nextAction ?? ""} (${pipelineByEin[r.ein]?.nextActionDate})`
+                      : "—"}
                   </TableCell>
                 </TableRow>
               );

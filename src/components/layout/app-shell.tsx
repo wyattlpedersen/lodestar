@@ -16,7 +16,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const setCommandPaletteOpen = useUiStore((s) => s.setCommandPaletteOpen);
 
   return (
-    <div className="flex h-dvh w-full overflow-hidden bg-background">
+    <div className="flex h-dvh w-full overflow-hidden bg-background print:h-auto print:overflow-visible">
       <aside className="flex w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar no-print">
         <div className="flex items-center gap-2 px-4 py-4">
           <span className="font-display text-lg font-semibold tracking-tight text-sidebar-foreground">
@@ -45,7 +45,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           <PresentationToggle />
         </header>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <main className="flex-1 overflow-y-auto print:h-auto print:overflow-visible">
+          {children}
+        </main>
       </div>
 
       <CommandPalette />
