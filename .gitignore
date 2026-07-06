@@ -1,0 +1,8 @@
+node_modules/
+.next/
+data/lodestar.db
+data/lodestar.db-*
+.env*.local
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
