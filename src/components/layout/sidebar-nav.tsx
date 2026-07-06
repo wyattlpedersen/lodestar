@@ -20,6 +20,7 @@ export function SidebarNav() {
             href={item.href}
             className={cn(
               "group flex items-center justify-between rounded-md px-2.5 py-2 text-sm transition-colors",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
               active
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"

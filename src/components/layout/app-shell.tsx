@@ -3,6 +3,7 @@
 import * as React from "react";
 import { SidebarNav } from "./sidebar-nav";
 import { CommandPalette } from "./command-palette";
+import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import { PresentationToggle } from "./presentation-toggle";
 import { ComplianceFooter } from "@/components/compliance-footer";
 import { initPresentationModeFromStorage, useUiStore } from "@/lib/stores/ui-store";
@@ -35,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4 no-print">
           <button
             onClick={() => setCommandPaletteOpen(true)}
-            className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted"
+            className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <Search className="size-3.5" />
             <span>Search or jump to...</span>
@@ -51,6 +52,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       <CommandPalette />
+      <KeyboardShortcuts />
     </div>
   );
 }

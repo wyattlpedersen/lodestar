@@ -66,4 +66,53 @@ Verified directly against `https://projects.propublica.org/nonprofits/api/v2/` b
 - **Verified live**: pipeline stage-transition validation blocks moving past Researched without a next action + date, and allows it once supplied; the debrief note on that same call correctly created a NEWS_MENTION signal. The Monday Report, Briefing aggregator, and Peers tab all confirmed against the 26 real hydrated orgs — real scores, real peer percentiles (KQED's contribution volatility landed at the 0th percentile of its cohort, its 5yr CAGR at the 100th — plausible, not fabricated), and a Reason-to-Call correctly keyed off its live PERFORMANCE_GAP signal.
 - **Print CSS verification was API/source-level only, not a rendered visual check** — the browser preview tool in this sandbox is scoped to the environment's home-directory config, and modifying it to point at this project was denied by the permission classifier (self-modification of a Claude Code startup file outside this project). Print layout (`.no-print`, `@page` sizing, `break-inside: avoid`) was verified by inspecting the generated HTML/CSS, not by visually rendering a print preview — worth a manual print-preview check before a real demo.
 
-(This file will keep growing through Phase 5 — seed EIN resolutions, manual-assisted field decisions, and any other non-obvious calls land here as they're made.)
+## Phase 5 — Polish, seed data, demo hardening
+
+- **Removed the `server-only` package guard from six lib files** (`propublica/client.ts`, `propublica/ingest.ts`, `signals/sync.ts`, `graph/loader.ts`, `scoring/context.ts`, `scoring/peer-loader.ts`). The package unconditionally throws when required outside Next.js's webpack build (it has no environment check of its own — Next's bundler is what swaps in a no-op for server bundles and an error for client bundles). That made it impossible for `scripts/seed.ts`/`scripts/snapshot.ts` to reuse the real ingest pipeline via plain `tsx` execution, which Section 9/F14 explicitly requires. The actual safety net — these modules are only ever imported from route handlers or server components — was never the `server-only` package itself; it's that nothing in this codebase imports them from a `"use client"` file, which `next build`'s successful production build (verified) confirms.
+- **Seed-list name→EIN resolution needed two manual query refinements** to avoid a wrong-but-plausible match: "Santa Clara University" as a literal query surfaces "Jesuit Community At Santa Clara University Inc" (a religious-community entity) ahead of the real corporate filer; querying "President Board of Trustees Santa Clara" instead correctly surfaces "President Board Of Trustees Santa Clara College" (EIN 941156617). Similarly "Fine Arts Museums of San Francisco" surfaces an obscure donor-advised "...Fund" first; the shorter query "Fine Arts Museums" surfaces the real "Fine Arts Museums Foundation" instead. Both fixes were verified live before being applied — never a hardcoded EIN, just a better search string, logged in `scripts/seed.ts`.
+- **3 of 29 seed-list orgs didn't resolve** on the live run committed with this snapshot: S.D. Bechtel Jr. Foundation, John Muir Health Foundation, and Sutter Health Foundation all returned `404` from ProPublica's search endpoint for those exact query strings (likely zero-result queries return 404 rather than an empty 200 array — worth confirming against ProPublica's docs if this matters later). Per spec, these were skipped and logged rather than guessed — see the Seed Resolution Log below. 26 real orgs were hydrated instead of ~29.
+- **Demo Mode is implemented as "restore the snapshot into the real SQLite DB,"** not a separate in-memory/read-only mode — this reuses every existing DB-reading code path with zero special-casing, and the actual requirement (a full offline demo, Section 0 #6) only needs the *loading* step to skip the network, not the whole app to behave differently afterward. Verified live: wiped the DB, POSTed `/api/settings/demo-mode`, confirmed all 26 orgs / 315 filings / 58 signals / 8 people / 11 affiliations / 26 pipeline rows restored with no ProPublica calls in the server log.
+- **Export/import covers all app tables except `raw_api_cache` by default** (pure API-response cache, large and reconstructable via refresh); the full-backup export endpoint includes it for completeness, but the checked-in `data/demo-snapshot.json` (built by `npm run snapshot`) deliberately excludes it to keep the repo file small (~280KB instead of multiple MB).
+- **`j`/`k`/Enter row navigation is implemented on the Rankings Board table specifically** (the flagship dense table per spec), not generically across every table in the app — the Pipeline Kanban is drag-and-drop cards, not a navigable table, and other tabs' tables (filings, peer metrics) are short enough that row-by-row keyboard nav wasn't worth the added complexity for this pass.
+- **Print-CSS and visual-focus verification remain source/API-level, not a rendered visual check** — same sandbox constraint noted in the Phase 4 log (the browser preview tool here is scoped to a different directory's config, and modifying it was denied). Worth a manual print-preview and a tab-through pass before a live demo.
+
+(This file will keep growing — seed EIN resolutions, manual-assisted field decisions, and any other non-obvious calls land here as they're made.)
+
+
+## Seed Resolution Log
+
+<!-- SEED_LOG_START -->
+### Seed resolution log (`npm run seed`, last run 2026-07-06T18:05:16.984Z)
+
+| Seed name | Resolved EIN | Matched name | Status |
+|---|---|---|---|
+| William & Flora Hewlett Foundation | 941655673 | William & Flora Hewlett Foundation | resolved |
+| David and Lucile Packard Foundation | 942278431 | David And Lucile Packard Foundation | resolved |
+| Gordon and Betty Moore Foundation | 943397785 | Gordon E And Betty I Moore Foundation | resolved |
+| Koret Foundation | 941624987 | Koret Foundation | resolved |
+| Walter and Elise Haas Fund | 946068564 | Walter And Elise Haas Fund | resolved |
+| Heising-Simons Foundation | 260799587 | The Heising Simons Foundation | resolved |
+| Sobrato Family Foundation | 770348912 | Sobrato Family Foundation | resolved |
+| S.D. Bechtel Jr. Foundation | — | — | ProPublica API request failed: 404 Not Found (https://projects.propublica.org/nonprofits/api/v2/search.json?q=S.D.+Bechtel+Jr.+Foundation&state%5Bid%5D=CA) |
+| Silicon Valley Community Foundation | 205205488 | Silicon Valley Community Foundation | resolved |
+| San Francisco Foundation | 10679337 | San Francisco Foundation | resolved |
+| Marin Community Foundation | 943007979 | Marin Community Foundation | resolved |
+| East Bay Community Foundation | 946070996 | East Bay Community Foundation | resolved |
+| San Francisco State University Foundation | 261169717 | San Francisco State University Foundation | resolved |
+| Tower Foundation of San Jose State University | 830403915 | The Tower Foundation Of San Jose State University | resolved |
+| University of San Francisco | 941156628 | University Of San Francisco | resolved |
+| Santa Clara University | 941156617 | President Board Of Trustees Santa Clara College | resolved |
+| Golden Gate University | 941585735 | Golden Gate University | resolved |
+| UCSF Foundation | 861175591 | Ucsf Health Medical Foundation | resolved |
+| John Muir Health Foundation | — | — | ProPublica API request failed: 404 Not Found (https://projects.propublica.org/nonprofits/api/v2/search.json?q=John+Muir+Health+Foundation&state%5Bid%5D=CA) |
+| Sutter Health Foundation | — | — | ProPublica API request failed: 404 Not Found (https://projects.propublica.org/nonprofits/api/v2/search.json?q=Sutter+Health+Foundation&state%5Bid%5D=CA) |
+| San Francisco Museum of Modern Art | 941156300 | San Francisco Museum Of Modern Art | resolved |
+| Fine Arts Museums of San Francisco | 946096509 | Fine Arts Museums Foundation | resolved |
+| Asian Art Museum Foundation of San Francisco | 941704765 | Asian Art Museum Foundation Of San Francisco | resolved |
+| San Francisco Symphony | 941156284 | San Francisco Symphony | resolved |
+| San Francisco Opera | 940836240 | San Francisco Opera Association | resolved |
+| San Francisco Ballet | 941415298 | San Francisco Ballet Association | resolved |
+| Exploratorium | 941696494 | The Exploratorium | resolved |
+| California Academy of Sciences | 941156258 | California Academy Of Sciences | resolved |
+| Oakland Museum of California | 453138892 | Oakland Museum Of California | resolved |
+<!-- SEED_LOG_END -->

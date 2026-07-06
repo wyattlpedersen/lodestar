@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "@/lib/db";
 import { organizations, filings, manualFacts, signals } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";

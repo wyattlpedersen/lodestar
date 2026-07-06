@@ -1,36 +1,115 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LODESTAR
 
-## Getting Started
+A prospecting terminal for a Private Bank analyst covering endowments & foundations (E&F) in the San Francisco Bay Area. LODESTAR turns public IRS Form 990 data plus analyst-logged intelligence into a ranked, explainable, always-current call sheet.
 
-First, run the development server:
+> Single-user, local-only demo app. No auth, no deployment infra, no external LLM calls. Built for a JPMorgan U.S. Private Bank summer analyst capstone.
+
+---
+
+## Quickstart
+
+Requires Node 20+.
 
 ```bash
+git clone <this-repo>
+cd lodestar
+npm install
+npm run seed      # resolves ~30 real Bay Area E&F orgs via the live ProPublica API and hydrates real filings (~2 min, throttled to 1 req/sec)
+npm run snapshot  # (optional) re-exports the current DB to data/demo-snapshot.json, the offline Demo Mode dataset
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. First screen is the Rankings Board.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+**No network on demo day?** Go to **Settings → Load Demo Mode snapshot**. It restores the checked-in `data/demo-snapshot.json` straight into SQLite — zero calls to ProPublica. The repo ships with a snapshot already generated from a real seed run, so this works out of the box even before you run `npm run seed` yourself.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Other scripts
 
-## Learn More
+| Command | What it does |
+|---|---|
+| `npm run seed` | Resolves the Section-10 seed list via live ProPublica search (never hardcoded EINs), hydrates real filings, layers in `EXAMPLE`-tagged demo intelligence (signals, people, pipeline stages). |
+| `npm run snapshot` | Exports the current DB to `data/demo-snapshot.json` for Demo Mode. |
+| `npm test` | Runs the Vitest suite (133 cases, mostly the scoring engine). |
+| `npm run db:push` | Applies the Drizzle schema to `data/lodestar.db`. |
+| `npm run db:studio` | Opens Drizzle Studio against the local DB. |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Architecture sketch
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+Next.js 15+ (App Router, TS strict)
+├── src/app/                    routes + route handlers (server-side only — never call ProPublica from the browser)
+│   ├── (Rankings, Universe, Pipeline, Monday Report, Settings)/page.tsx
+│   ├── org/[ein]/               Org Dossier — tabbed: Overview, Score, Signals, People, Peers, Briefing, Activity
+│   └── api/                     route handlers for every mutation + data fetch
+├── src/lib/
+│   ├── propublica/               throttled API client (1 req/s + backoff), raw-cache-first reads, mapper (API shape -> schema)
+│   ├── scoring/                  isomorphic scoring engine — zero server-only imports, runs identically in SSR, API routes, and the browser (What-If live re-rank)
+│   ├── signals/                  Section 8 taxonomy + AUTO-signal derivation from filing deltas
+│   ├── graph/                    pure bipartite trustee graph (BFS Path Finder, super-connector index) — no graph library
+│   ├── fiscal-calendar.ts        FYE-based outreach windows, Next-60-Days queue
+│   ├── reason-to-call.ts         16 deterministic templates (no LLM)
+│   ├── briefing/objection-prep.ts profile-tailored objection responses
+│   └── db/schema.ts              Drizzle schema, single SQLite file at data/lodestar.db (gitignored)
+└── scripts/seed.ts, snapshot.ts   standalone tsx scripts reusing the same lib code as the app
+```
 
-## Deploy on Vercel
+**Data flow for one org:** ProPublica search/detail → `raw_api_cache` (every raw response persisted before mapping) → `propublica/mapper.ts` → `organizations`/`filings` tables → `scoring/context.ts` bulk-loads the whole universe in 4 queries (not one per org) → `scoring/engine.ts` (pure function) computes the six-pillar score → optionally persisted to the append-only `scores` table on "Rescore all" (powers sparklines and Monday Report movers).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Why the scoring engine has no server-only imports:** the same `computeScore()` call needs to run during SSR (initial Dossier render), inside API routes (`/api/scoring`, `/api/scoring/rescore`), and live in the browser (Rankings Board weight sliders, the Score tab's What-If panel) — all from identical inputs, so a slider drag re-ranks instantly with no round trip. The one server-only seam is `scoring/context.ts`, which loads DB rows into the engine's plain `ScoringInput` shape. (The `scripts/seed.ts` and `scripts/snapshot.ts` CLI scripts reuse this exact same server-side code outside of Next's request lifecycle.)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## Scoring methodology
+
+Composite 0–100 per org, six weighted pillars (weights are user-adjustable, always renormalized to sum to 1.0):
+
+| Pillar | Default weight | What it answers |
+|---|---|---|
+| Money in Motion | 30% | Is there a reason to call this quarter? Signals decay exponentially by half-life; persistent conditions (e.g. spending stress) are recomputed each run, not decayed. |
+| Scale & Mandate Fit | 20% | Right size/shape for the desk? Piecewise on assets; >$1B sets a `COORDINATE_INSTITUTIONAL` channel flag. |
+| Access & Connectivity | 15% | Can we get a warm meeting? Computed from the real trustee graph — known contacts, second-degree paths via shared board members, super-connectors (3+ boards). |
+| Need & Vulnerability | 15% | Is their setup beatable? Fee ratio, investment-officer staffing, asset-mix sophistication — all analyst-entered from reading the actual 990, never fabricated. |
+| Wealth Adjacency | 10% | Does this open a door to private wealth? Living founders, liquidity events, family/UHNW trustees. |
+| Growth & Expansion | 10% | Will this relationship compound? Peer-cohort CAGR percentile, contribution momentum, credit/treasury and DAF fit. |
+
+A separate **Confidence Index** (0–100, graded A/B/C) scores filing recency, data completeness, sourced-signal count, and analyst verification. **Tier 1 requires Confidence ≥ B** — a high-scoring org with thin data surfaces as "Tier 1 (pending verification)" rather than being silently trusted or silently demoted.
+
+Every score renders as a **waterfall**: pillar contributions stacked to the total, each pillar expandable to its factor rows, each factor showing its exact math and data provenance (`API` / `MANUAL` / `EXAMPLE` / `DERIVED`). The engine is unit-tested exhaustively (decay curves, every pillar's caps and boundaries, weight normalization, tier boundaries, persistent-signal behavior, confidence gating) — see `src/lib/scoring/__tests__/`.
+
+---
+
+## Data sources & limitations
+
+- **Real data:** IRS Form 990/990-PF/990-EZ filings via the [ProPublica Nonprofit Explorer API](https://projects.propublica.org/nonprofits/api/) (free, no key). Every raw response is cached in `raw_api_cache` before mapping; re-fetch only happens on an explicit refresh.
+- **`EXAMPLE`-tagged content is fake and clearly marked.** Seed signals, seed people/affiliations, and any seed pipeline entries carry a dashed border + `EXAMPLE` badge in the UI and are excluded from exports by default. Never presented as real intelligence.
+- **Manual-assisted fields** (investment fees, staffing, asset mix) aren't in the API — the app shows a "Read the 990" deep link next to structured inputs, and an analyst reads the actual filing and types 2–4 numbers. This capture step *is* the workflow, not a shortcut around it.
+- **Known heuristics/limitations** (all documented in detail, with the live evidence behind each call, in `ASSUMPTIONS.md`):
+  - `org_type` (private foundation / community foundation / university / etc.) is inferred from name keywords + NTEE code + IRS foundation code — not an authoritative API field.
+  - The "70/30 benchmark" used for the PERFORMANCE_GAP signal is a static 7% assumption; there's no market-data feed in scope.
+  - CAGR is `null` rather than guessed whenever ProPublica's structured extraction skipped the exact year needed — never interpolated.
+  - "Corporate foundation with C-suite trustees" (Wealth Adjacency) can't fire yet — no schema field distinguishes a corporate foundation, and this app doesn't fabricate that detection.
+  - 3 of the ~30 seed-list orgs didn't resolve cleanly against the live API on the last seed run (logged, not guessed) — see the Seed Resolution Log at the bottom of `ASSUMPTIONS.md`.
+
+---
+
+## Demo script (~5 minutes)
+
+Rehearsed flow, matches the build spec's acceptance script:
+
+1. **Rankings Board** — "Every Bay Area E&F over $25M, scored and ranked. Built from live IRS data."
+2. **Adjust a weight slider** — watch the whole board re-rank live, instantly, client-side.
+3. **Open the #1 org → Score tab** — the waterfall: "Every point is auditable down to the source filing. No black box."
+4. **Signals tab** — a decaying event curve with "today" marked: "Intel goes stale. A CIO departure from last week outweighs one from last year."
+5. **People tab → Path Finder** — "One trustee we know sits two hops from this board. That's the meeting."
+6. **Briefing tab → Print** — one-click, print-ready meeting prep.
+7. **Monday Report** — "This is what lands in my MD's inbox every Monday at 8am."
+
+Toggle **presentation mode** (top-right) before projecting — same layout, inverted light palette, larger type.
+
+---
+
+## Tech stack
+
+Next.js 15+ (App Router, TS strict) · Tailwind + shadcn/ui (Base UI) · SQLite via better-sqlite3 + Drizzle ORM · Zustand · Recharts · Vitest. No auth, no multi-user, no external LLM calls, no web scraping — see `ASSUMPTIONS.md` for every judgment call made building it.

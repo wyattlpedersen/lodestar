@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/page-header";
 import { SettingsWeights } from "./settings-weights";
+import { DataManagement } from "./data-management";
 
 export default function SettingsPage() {
   return (
@@ -8,12 +9,9 @@ export default function SettingsPage() {
         title="Settings"
         description="Weight presets, data refresh, import/export, and Demo Mode."
       />
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto divide-y divide-border">
         <SettingsWeights />
-        <div className="border-t border-border px-6 py-4 text-xs text-muted-foreground">
-          Data management (refresh all, export/import, Demo Mode) arrives with
-          Phase 5 — Polish & demo hardening.
-        </div>
+        <DataManagement />
       </div>
     </div>
   );

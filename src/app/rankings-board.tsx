@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -150,6 +151,34 @@ export function RankingsBoard() {
     return true;
   });
 
+  const router = useRouter();
+  const [activeRowRaw, setActiveRow] = React.useState(0);
+  // Clamp during render rather than via a setState-in-effect (avoids an extra render pass).
+  const activeRow = filtered.length === 0 ? 0 : Math.min(activeRowRaw, filtered.length - 1);
+
+  React.useEffect(() => {
+    function isTypingTarget(el: EventTarget | null): boolean {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName.toLowerCase();
+      return tag === "input" || tag === "textarea" || el.isContentEditable;
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (isTypingTarget(e.target) || filtered.length === 0) return;
+      if (e.key === "j") {
+        e.preventDefault();
+        setActiveRow((i) => Math.min(filtered.length - 1, i + 1));
+      } else if (e.key === "k") {
+        e.preventDefault();
+        setActiveRow((i) => Math.max(0, i - 1));
+      } else if (e.key === "Enter") {
+        const row = filtered[activeRow];
+        if (row) router.push(`/org/${row.ein}`);
+      }
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [filtered, activeRow, router]);
+
   if (loading) {
     return (
       <div className="space-y-2 p-6">
@@ -275,8 +304,13 @@ export function RankingsBoard() {
               return (
                 <TableRow
                   key={r.ein}
-                  className="cursor-pointer"
-                  onClick={() => (window.location.href = `/org/${r.ein}`)}
+                  className={
+                    "cursor-pointer" + (idx === activeRow ? " bg-muted/60" : "")
+                  }
+                  onClick={() => {
+                    setActiveRow(idx);
+                    router.push(`/org/${r.ein}`);
+                  }}
                 >
                   <TableCell className="font-mono text-xs text-muted-foreground">
                     {idx + 1}

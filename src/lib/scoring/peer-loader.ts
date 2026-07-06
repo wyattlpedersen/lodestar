@@ -1,4 +1,3 @@
-import "server-only";
 import { db } from "@/lib/db";
 import { filings as filingsTable, manualFacts as manualFactsTable, organizations } from "@/lib/db/schema";
 import { computeDerivedFinancials, type FilingLike } from "@/lib/derived-financials";
