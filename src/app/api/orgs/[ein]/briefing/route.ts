@@ -26,7 +26,7 @@ export async function GET(
     return NextResponse.json({ error: "Org not found" }, { status: 404 });
   }
 
-  const [orgFilings, activeSignals, pipelineRow, weightRow, inputs, pathCtx, peerMetrics] =
+  const [orgFilings, activeSignals, pipelineRow, weightRow, inputs, pathCtx, peerResult] =
     await Promise.all([
       db.select().from(filings).where(eq(filings.ein, ein)).orderBy(desc(filings.taxYear)),
       db
@@ -80,7 +80,7 @@ export async function GET(
     score: scoreResult,
     signals: activeOnly,
     path,
-    peerMetrics,
+    peerMetrics: peerResult?.metrics ?? null,
     pipeline: pipelineRow ?? null,
     reasonToCall,
     objectionPrep,
