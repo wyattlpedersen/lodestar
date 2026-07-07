@@ -1,17 +1,28 @@
 /**
  * npm run seed — builds the ~30-org Bay Area E&F seed universe (Section 10),
  * resolving each name to a real EIN via the live ProPublica search API (never
- * hardcoded — avoids transcription errors), hydrating real filings for each,
- * then layering in EXAMPLE-tagged example intelligence (signals, people,
- * pipeline stages) so the demo has something to look at beyond raw filings.
+ * hardcoded — avoids transcription errors) and hydrating real filings for
+ * each. Real data only, by default — no fabricated content mixed in.
  *
- * Every EXAMPLE-tagged row is clearly marked in the UI (dashed border +
- * label) and excluded from exports by default — never presented as real.
+ * Pass `--examples` to also layer in EXAMPLE-tagged example intelligence
+ * (signals, people, pipeline stages) on top, e.g. for a local rehearsal of
+ * Path Finder / decay-curve / pipeline demos. This is intentionally NOT the
+ * default: a public/live deployment should show only real IRS data, and
+ * "what does the example intelligence look like" should be something you
+ * opt into (locally, or via Settings -> Demo Mode, which restores a snapshot
+ * built with `npm run seed:examples`) — not something baked into every
+ * fresh seed. Every EXAMPLE-tagged row is clearly marked in the UI (dashed
+ * border + label) and excluded from exports by default regardless.
+ *
+ * `npm run seed:examples` runs *only* the example-layering step against
+ * whatever real orgs are already hydrated — no re-fetch, no ProPublica
+ * calls, useful for building the demo snapshot without waiting through a
+ * full re-seed.
  */
 import fs from "node:fs";
 import path from "node:path";
 import { db } from "../src/lib/db";
-import { affiliations, people, pipeline, signals } from "../src/lib/db/schema";
+import { affiliations, organizations, people, pipeline, signals } from "../src/lib/db/schema";
 import { searchOrganizations } from "../src/lib/propublica/client";
 import { hydrateOrganization } from "../src/lib/propublica/ingest";
 
@@ -413,7 +424,44 @@ async function seedExampleIntelligence(einByName: Map<string, string>) {
   }
 }
 
+const SEED_NAME_KEYWORDS = [
+  "hewlett",
+  "packard",
+  "moore",
+  "museum of modern art",
+  "asian art",
+  "symphony",
+  "silicon valley community",
+  "san francisco foundation",
+  "ucsf",
+  "exploratorium",
+];
+
+/** Builds the einByName map that seedExampleIntelligence's keyword matching needs, from whatever is already hydrated — no re-fetch. */
+async function loadEinByNameFromDb(): Promise<Map<string, string>> {
+  const allOrgs = await db.select({ ein: organizations.ein, name: organizations.name }).from(organizations);
+  const relevant = allOrgs.filter((o) =>
+    SEED_NAME_KEYWORDS.some((kw) => o.name.toLowerCase().includes(kw))
+  );
+  return new Map(relevant.map((o) => [o.name, o.ein]));
+}
+
 async function main() {
+  const includeExamples = process.argv.includes("--examples");
+  const examplesOnly = process.argv.includes("--examples-only");
+
+  if (examplesOnly) {
+    console.log("Adding EXAMPLE-tagged example intelligence to already-hydrated orgs (no ProPublica calls)...");
+    const einByName = await loadEinByNameFromDb();
+    if (einByName.size === 0) {
+      console.log("No matching seed orgs found in the DB yet — run `npm run seed` first.");
+      process.exit(1);
+    }
+    await seedExampleIntelligence(einByName);
+    console.log(`Done. Example intelligence added against ${einByName.size} matched orgs.`);
+    process.exit(0);
+  }
+
   console.log(`Resolving ${SEED_ORGS.length} seed orgs against the live ProPublica API...`);
   const resolutions: Resolution[] = [];
   for (const spec of SEED_ORGS) {
@@ -438,8 +486,14 @@ async function main() {
     }
   }
 
-  console.log("\nSeeding EXAMPLE-tagged example intelligence (signals, people, pipeline)...");
-  await seedExampleIntelligence(einByName);
+  if (includeExamples) {
+    console.log("\nSeeding EXAMPLE-tagged example intelligence (signals, people, pipeline)...");
+    await seedExampleIntelligence(einByName);
+  } else {
+    console.log(
+      "\nSkipping EXAMPLE-tagged content (real-data-only seed). Run `npm run seed:examples` to add it."
+    );
+  }
 
   console.log(`\nDone. ${einByName.size} orgs hydrated with real IRS filings.`);
   process.exit(0);

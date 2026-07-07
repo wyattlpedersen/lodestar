@@ -14,21 +14,23 @@ Requires Node 20+.
 git clone <this-repo>
 cd lodestar
 npm install
-npm run seed      # resolves ~30 real Bay Area E&F orgs via the live ProPublica API and hydrates real filings (~2 min, throttled to 1 req/sec)
-npm run snapshot  # (optional) re-exports the current DB to data/demo-snapshot.json, the offline Demo Mode dataset
+npm run seed      # resolves ~30 real Bay Area E&F orgs via the live ProPublica API and hydrates real filings — real data only (~2 min, throttled to 1 req/sec)
 npm run dev
 ```
 
-Open http://localhost:3000. First screen is the Rankings Board.
+Open http://localhost:3000. First screen is the Rankings Board, populated with real orgs and no fabricated content.
 
-**No network on demo day?** Go to **Settings → Load Demo Mode snapshot**. It restores the checked-in `data/demo-snapshot.json` straight into SQLite — zero calls to ProPublica. The repo ships with a snapshot already generated from a real seed run, so this works out of the box even before you run `npm run seed` yourself.
+**Want to see the trustee graph / decay curves / pipeline demo in action?** Run `npm run seed:examples` afterward — it layers `EXAMPLE`-tagged signals, people, and pipeline cards on top of whatever's already hydrated (no re-fetch). Every example row is visibly marked (dashed border + label) and excluded from exports by default.
+
+**No network on demo day?** Go to **Settings → Load Demo Mode snapshot**. It restores the checked-in `data/demo-snapshot.json` (real orgs *and* example intelligence together) straight into SQLite — zero calls to ProPublica.
 
 ### Other scripts
 
 | Command | What it does |
 |---|---|
-| `npm run seed` | Resolves the Section-10 seed list via live ProPublica search (never hardcoded EINs), hydrates real filings, layers in `EXAMPLE`-tagged demo intelligence (signals, people, pipeline stages). |
-| `npm run snapshot` | Exports the current DB to `data/demo-snapshot.json` for Demo Mode. |
+| `npm run seed` | Resolves the Section-10 seed list via live ProPublica search (never hardcoded EINs), hydrates real filings. Real data only — no `EXAMPLE` content. |
+| `npm run seed:examples` | Layers `EXAMPLE`-tagged demo intelligence (signals, people, pipeline stages) onto already-hydrated orgs. No ProPublica calls. |
+| `npm run snapshot` | Exports the current DB to `data/demo-snapshot.json` for Demo Mode (run after `seed` + `seed:examples` so the snapshot has both). |
 | `npm test` | Runs the Vitest suite (133 cases, mostly the scoring engine). |
 | `npm run db:push` | Applies the Drizzle schema to `data/lodestar.db`. |
 | `npm run db:studio` | Opens Drizzle Studio against the local DB. |
