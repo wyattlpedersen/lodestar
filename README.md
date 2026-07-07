@@ -22,9 +22,9 @@ npm run dev
 
 Open http://localhost:3000. First screen is the Rankings Board, populated with real orgs and no fabricated content.
 
-**Want to see the trustee graph / decay curves / pipeline demo in action?** Run `npm run seed:examples` afterward — it layers `EXAMPLE`-tagged signals, people, and pipeline cards on top of whatever's already hydrated (no re-fetch). Every example row is visibly marked (dashed border + label) and excluded from exports by default.
+**Want to see the trustee graph / decay curves / pipeline demo in action?** Flip the **Example content** switch in **Settings** — it's a real on/off toggle (`/api/settings/example-content`, DB-only, no ProPublica calls either way, safe to flip repeatedly): ON layers `EXAMPLE`-tagged signals, people, and pipeline cards onto whatever's already hydrated; OFF removes them cleanly and resets pipeline stages, leaving your real data untouched. (`npm run seed:examples` does the same thing from the CLI, for building the demo snapshot.)
 
-**No network on demo day?** Go to **Settings → Load Demo Mode snapshot**. It restores the checked-in `data/demo-snapshot.json` (real orgs *and* example intelligence together) straight into SQLite — zero calls to ProPublica.
+**No network at all on demo day?** Go to **Settings → Restore full offline snapshot**. It replaces the *entire* database from the checked-in `data/demo-snapshot.json` (real orgs and example intelligence together) — zero calls to ProPublica. Use the Example Content toggle above for day-to-day switching; save this one for when there's genuinely no connectivity.
 
 ### Other scripts
 
