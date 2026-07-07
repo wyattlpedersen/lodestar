@@ -66,7 +66,10 @@ export function RankingsBoard() {
   const [warmPathOnly, setWarmPathOnly] = React.useState(false);
   const [staleTier1Only, setStaleTier1Only] = React.useState(false);
   const [pipelineByEin, setPipelineByEin] = React.useState<
-    Record<string, { lastTouchDate: string | null; nextAction: string | null; nextActionDate: string | null }>
+    Record<
+      string,
+      { stage: string; lastTouchDate: string | null; nextAction: string | null; nextActionDate: string | null }
+    >
   >({});
 
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -83,7 +86,12 @@ export function RankingsBoard() {
         setPresetName(data.weightProfile.name);
         const byEin: typeof pipelineByEin = {};
         for (const p of pipelineData.pipeline ?? []) {
-          byEin[p.ein] = { lastTouchDate: p.lastTouchDate, nextAction: p.nextAction, nextActionDate: p.nextActionDate };
+          byEin[p.ein] = {
+            stage: p.stage,
+            lastTouchDate: p.lastTouchDate,
+            nextAction: p.nextAction,
+            nextActionDate: p.nextActionDate,
+          };
         }
         setPipelineByEin(byEin);
       })
@@ -131,6 +139,20 @@ export function RankingsBoard() {
       .map((i) => computeScore(i, weights, today, presetName))
       .sort((a, b) => b.total - a.total);
   }, [inputs, weights, presetName, today]);
+
+  const portfolioStats = React.useMemo(() => {
+    const totalAssets = inputs.reduce((sum, i) => sum + (i.latestAssets ?? 0), 0);
+    const warmPathAssets = inputs
+      .filter((i) => i.access.hasWarmPath || i.access.hasSecondDegreePath)
+      .reduce((sum, i) => sum + (i.latestAssets ?? 0), 0);
+    const NOT_YET_WORKED = new Set(["identified", "researched"]);
+    const tier1AwaitingOutreach = results.filter((r) => {
+      if (r.tier !== "TIER_1") return false;
+      const stage = pipelineByEin[r.ein]?.stage ?? "identified";
+      return NOT_YET_WORKED.has(stage);
+    }).length;
+    return { totalAssets, warmPathAssets, tier1AwaitingOutreach };
+  }, [inputs, results, pipelineByEin]);
 
   const filtered = results.filter((r) => {
     if (tierFilter !== "All" && r.tier !== tierFilter) return false;
@@ -209,6 +231,33 @@ export function RankingsBoard() {
 
   return (
     <div className="flex h-full flex-col">
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-2 border-b border-border bg-muted/10 px-6 py-3">
+        <div>
+          <div className="font-mono text-xl font-semibold tabular-nums">
+            {fmtUsd(portfolioStats.totalAssets)}
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            mapped across {inputs.length} org{inputs.length === 1 ? "" : "s"}
+          </div>
+        </div>
+        <div className="hidden h-8 w-px bg-border sm:block" />
+        <div>
+          <div className="font-mono text-xl font-semibold tabular-nums text-signal-positive">
+            {fmtUsd(portfolioStats.warmPathAssets)}
+          </div>
+          <div className="text-[11px] text-muted-foreground">with a warm or second-degree path</div>
+        </div>
+        <div className="hidden h-8 w-px bg-border sm:block" />
+        <div>
+          <div className="font-mono text-xl font-semibold tabular-nums text-gold">
+            {portfolioStats.tier1AwaitingOutreach}
+          </div>
+          <div className="text-[11px] text-muted-foreground">
+            Tier 1{portfolioStats.tier1AwaitingOutreach === 1 ? "" : "s"} awaiting outreach
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-6 py-2.5">
         <Select value={tierFilter} onValueChange={(v) => v && setTierFilter(v)}>
           <SelectTrigger className="h-7 w-32 text-xs">

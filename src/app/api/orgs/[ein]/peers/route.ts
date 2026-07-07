@@ -6,9 +6,9 @@ export async function GET(
   { params }: { params: Promise<{ ein: string }> }
 ) {
   const { ein } = await params;
-  const metrics = await loadPeerBenchmark(ein);
-  if (!metrics) {
+  const result = await loadPeerBenchmark(ein);
+  if (!result) {
     return NextResponse.json({ error: "Org not found" }, { status: 404 });
   }
-  return NextResponse.json({ metrics });
+  return NextResponse.json(result);
 }

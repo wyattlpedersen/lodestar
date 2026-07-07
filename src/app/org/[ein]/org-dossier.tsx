@@ -64,7 +64,7 @@ export function OrgDossier({
           <PeopleTab ein={org.ein} />
         </TabsContent>
         <TabsContent value="peers" className="mt-0">
-          <PeersTab ein={org.ein} />
+          <PeersTab ein={org.ein} orgName={org.name} />
         </TabsContent>
         <TabsContent value="briefing" className="mt-0">
           <BriefingTab ein={org.ein} />
