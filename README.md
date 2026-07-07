@@ -1,5 +1,7 @@
 # LODESTAR
 
+Built by Wyatt Pedersen.
+
 A prospecting terminal for a Private Bank analyst covering endowments & foundations (E&F) in the San Francisco Bay Area. LODESTAR turns public IRS Form 990 data plus analyst-logged intelligence into a ranked, explainable, always-current call sheet.
 
 > Single-user demo app, designed to run locally. No auth, no external LLM calls. Built for a JPMorgan U.S. Private Bank summer analyst capstone. (Optional hosted deployment via Vercel + Turso is documented below, added after the initial build.)

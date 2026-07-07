@@ -29,6 +29,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <div className="border-t border-sidebar-border p-3">
           <ComplianceFooter />
+          <p className="mt-2 text-[10px] text-sidebar-foreground/40">Built by Wyatt Pedersen</p>
         </div>
       </aside>
 
