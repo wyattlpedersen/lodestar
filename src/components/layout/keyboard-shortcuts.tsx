@@ -8,6 +8,7 @@ const G_ROUTES: Record<string, string> = {
   r: "/",
   u: "/universe",
   p: "/pipeline",
+  n: "/network",
   m: "/monday-report",
   s: "/settings",
 };

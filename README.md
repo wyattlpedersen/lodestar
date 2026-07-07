@@ -69,7 +69,7 @@ Next.js 15+ (App Router, TS strict)
 │   ├── propublica/               throttled API client (1 req/s + backoff), raw-cache-first reads, mapper (API shape -> schema)
 │   ├── scoring/                  isomorphic scoring engine — zero server-only imports, runs identically in SSR, API routes, and the browser (What-If live re-rank)
 │   ├── signals/                  Section 8 taxonomy + AUTO-signal derivation from filing deltas
-│   ├── graph/                    pure bipartite trustee graph (BFS Path Finder, super-connector index) — no graph library
+│   ├── graph/                    pure bipartite trustee graph (BFS Path Finder, super-connector index) — no graph library; visualized whole-universe at /network
 │   ├── fiscal-calendar.ts        FYE-based outreach windows, Next-60-Days queue
 │   ├── reason-to-call.ts         16 deterministic templates (no LLM)
 │   ├── briefing/objection-prep.ts profile-tailored objection responses
@@ -125,8 +125,9 @@ Rehearsed flow, matches the build spec's acceptance script:
 3. **Open the #1 org → Score tab** — the waterfall: "Every point is auditable down to the source filing. No black box."
 4. **Signals tab** — a decaying event curve with "today" marked: "Intel goes stale. A CIO departure from last week outweighs one from last year."
 5. **People tab → Path Finder** — "One trustee we know sits two hops from this board. That's the meeting."
-6. **Briefing tab → Print** — one-click, print-ready meeting prep.
-7. **Monday Report** — "This is what lands in my MD's inbox every Monday at 8am."
+6. **Network page** — zoom out to the whole universe's trustee graph: "Here's every relationship we've mapped, and the handful of people who quietly connect dozens of these institutions."
+7. **Briefing tab → Print** — one-click, print-ready meeting prep.
+8. **Monday Report** — "This is what lands in my MD's inbox every Monday at 8am."
 
 Toggle **presentation mode** (top-right) before projecting — same layout, inverted light palette, larger type.
 
