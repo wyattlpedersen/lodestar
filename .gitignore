@@ -2,7 +2,9 @@ node_modules/
 .next/
 data/lodestar.db
 data/lodestar.db-*
+.env
 .env*.local
+!.env.example
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts

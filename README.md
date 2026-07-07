@@ -2,7 +2,7 @@
 
 A prospecting terminal for a Private Bank analyst covering endowments & foundations (E&F) in the San Francisco Bay Area. LODESTAR turns public IRS Form 990 data plus analyst-logged intelligence into a ranked, explainable, always-current call sheet.
 
-> Single-user, local-only demo app. No auth, no deployment infra, no external LLM calls. Built for a JPMorgan U.S. Private Bank summer analyst capstone.
+> Single-user demo app, designed to run locally. No auth, no external LLM calls. Built for a JPMorgan U.S. Private Bank summer analyst capstone. (Optional hosted deployment via Vercel + Turso is documented below, added after the initial build.)
 
 ---
 
@@ -32,6 +32,26 @@ Open http://localhost:3000. First screen is the Rankings Board.
 | `npm test` | Runs the Vitest suite (133 cases, mostly the scoring engine). |
 | `npm run db:push` | Applies the Drizzle schema to `data/lodestar.db`. |
 | `npm run db:studio` | Opens Drizzle Studio against the local DB. |
+
+---
+
+## Deploying a public URL (Vercel + Turso)
+
+The app runs against SQLite via [libSQL](https://turso.tech/libsql), which works both as a plain local file (default — no setup needed) and against a hosted [Turso](https://turso.tech) database (same schema, same queries, just a URL + token). That's what makes a public deployment possible without touching any app code.
+
+1. **Create a Turso database** at [turso.tech](https://turso.tech) (free tier is plenty). From its dashboard, grab the database URL (`libsql://...`) and create an auth token.
+2. **Push the schema to it** from your machine:
+   ```bash
+   TURSO_DATABASE_URL="libsql://..." TURSO_AUTH_TOKEN="..." npm run db:push
+   ```
+3. **(Recommended) Seed it directly**, so the deployed site has real data on first load:
+   ```bash
+   TURSO_DATABASE_URL="libsql://..." TURSO_AUTH_TOKEN="..." npm run seed
+   ```
+4. **Deploy to Vercel:** go to [vercel.com/new](https://vercel.com/new), import this GitHub repo, and before the first deploy add two environment variables in the project settings — `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` (same values as above). Click Deploy.
+
+That's it — Vercel builds and serves the Next.js app, and every request talks to the hosted Turso database over HTTP instead of a local file. No native binary, no persistent server process required.
+
 
 ---
 

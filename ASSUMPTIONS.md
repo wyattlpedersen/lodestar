@@ -78,11 +78,17 @@ Verified directly against `https://projects.propublica.org/nonprofits/api/v2/` b
 
 (This file will keep growing — seed EIN resolutions, manual-assisted field decisions, and any other non-obvious calls land here as they're made.)
 
+## Post-launch — Hosted deployment (Vercel + Turso)
+
+- **Deviated from Section 4's specified `better-sqlite3` driver, on explicit user request, to make a public deployment possible.** The original build (Phases 0–5) used `better-sqlite3` as specified — correct for a strictly local-only tool, but its native binary and file-handle model don't work on serverless platforms like Vercel. Swapped to `@libsql/client` + `drizzle-orm/libsql`, which speaks the same SQLite dialect but supports both a local file (`file:./data/lodestar.db`, zero setup, what local dev still uses by default) and a remote hosted database (Turso, over HTTP) through the identical client API and identical Drizzle schema/queries — no query code changed, only `src/lib/db/index.ts` and `drizzle.config.ts`.
+- **`serverExternalPackages: ["@libsql/client"]`** added to `next.config.ts` since the package ships platform-native bindings for its local-file engine; this keeps Next's bundler from trying to inline it.
+- **Verified after the swap:** full Vitest suite (133 cases) still green, `next build` clean, `npm run seed` re-run successfully against the new client, and a smoke-tested dev server confirmed identical API responses (26 orgs, Monday Report, etc.) — the migration is a drop-in at the driver level, no behavioral change.
+- **Local dev requires zero new setup** — no Turso account needed unless you're deploying. `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` are optional env vars that only matter for the hosted path (see README's Deployment section).
 
 ## Seed Resolution Log
 
 <!-- SEED_LOG_START -->
-### Seed resolution log (`npm run seed`, last run 2026-07-06T23:12:24.883Z)
+### Seed resolution log (`npm run seed`, last run 2026-07-07T00:06:57.251Z)
 
 | Seed name | Resolved EIN | Matched name | Status |
 |---|---|---|---|
